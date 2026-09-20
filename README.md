@@ -19,7 +19,7 @@
   A research-oriented hybrid quantum-classical framework for early antimicrobial resistance risk estimation in urinary tract infections.
 </p>
 
----
+
 
 # 📌 Table of Contents
 
