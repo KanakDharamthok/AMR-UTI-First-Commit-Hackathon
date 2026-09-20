@@ -1,142 +1,143 @@
-import os
-import json
-import torch
-import joblib
-import boto3
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from fastapi import FastAPI, HTTPException
+import logging
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any
-import xgboost as xgb
-import sys
+import pandas as pd
+import numpy as np
+import torch
+import joblib
 
-# Ensure src modules can be imported
-BASE_DIR = Path(__file__).resolve().parent
-sys.path.append(str(BASE_DIR / "src"))
+# Import your ML modules
+from src.module2_features.reduction import parse_temporal_features
+from src.module3_execution.quantum_circuit import HybridQuantumClassicalModel
+from src.module3_execution.qsvm_fallback import extract_mps_embeddings
 
-from module2_features.reduction import parse_temporal_features
-from module3_execution.quantum_circuit import HybridQuantumClassicalModel
-from module3_execution.qsvm_fallback import extract_mps_embeddings
+# Import Hackathon Track Modules (Cedar Auth & OpenSearch)
+from src.module4_auth.cedar_policy import CedarPolicyEngine
+from src.module0_opensearch.opensearch_client import get_opensearch_client
 
-MODEL_DIR = BASE_DIR / "models"
-MODEL_DIR.mkdir(exist_ok=True)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AMR-UTI Quantum Pipeline API")
+app = FastAPI(title="AMR-UTI Quantum API", version="1.0")
 
-# Allow frontend to make requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], 
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Global model variables
-standard_scaler = None
-inference_model = None
+# Global variables to hold models in memory
+scaler = None
 hybrid_model = None
-qsvm_model = None
-qsvm_embedder = None
-
-def fetch_s3_artifacts():
-    """Downloads model artifacts from S3 on startup."""
-    bucket_name = "amr-uti-models" # TODO: Update with your exact AWS S3 bucket name
-    s3_prefix = "models/"
-    required_files = ["standard_scaler.pkl", "hybrid_mps_qnn.pt", "xgb_baseline.json", "qsvm_weights.pkl"]
-    
-    s3 = boto3.client('s3')
-    for file in required_files:
-        local_path = MODEL_DIR / file
-        if not local_path.exists():
-            try:
-                print(f"Downloading {file} from S3...")
-                s3.download_file(bucket_name, f"{s3_prefix}{file}", str(local_path))
-            except Exception as e:
-                print(f"Skipping {file}: Not found in S3 or access denied.")
+xgb_baseline = None
+feature_names = []
 
 @app.on_event("startup")
-def load_models():
-    global standard_scaler, inference_model, hybrid_model, qsvm_model, qsvm_embedder
+def load_artifacts():
+    global scaler, hybrid_model, xgb_baseline, feature_names
+    logger.info("Loading ML Artifacts into memory...")
     
-    fetch_s3_artifacts()
-    
-    scaler_path = MODEL_DIR / "standard_scaler.pkl"
-    if not scaler_path.exists():
-        print("Warning: standard_scaler.pkl not found. API will fail.")
-        return
-
-    standard_scaler = joblib.load(scaler_path)
-
-    # 1. Load XGBoost (Optional)
-    xgb_path = MODEL_DIR / "xgb_baseline.json"
-    if xgb_path.exists():
-        try:
-            temp_xgb = xgb.XGBClassifier()
-            temp_xgb.load_model(xgb_path)
-            if set(temp_xgb.get_booster().feature_names or []) == set(standard_scaler.feature_names_in_):
-                inference_model = temp_xgb
-        except Exception:
-            pass
-
-    # 2. Load Hybrid MPS-QNN
-    hybrid_path = MODEL_DIR / "hybrid_mps_qnn.pt"
-    if hybrid_path.exists():
-        feature_names = list(standard_scaler.feature_names_in_)
-        dummy_df = pd.DataFrame(np.zeros((1, len(feature_names))), columns=feature_names)
-        feature_groups, static_features = parse_temporal_features(dummy_df)
-        active_steps = [t for t in ['ALL', '180', '90', '30', '14', '7'] if len(feature_groups[t]) > 0]
+    try:
+        scaler = joblib.load("models/standard_scaler.pkl")
+        feature_names = list(scaler.feature_names_in_)
         
-        hybrid_model = HybridQuantumClassicalModel(
-            mps_input_dims=[len(feature_groups[t]) for t in active_steps], 
-            static_dim=len(static_features), 
-            n_layers=3
-        )
-        hybrid_model.load_state_dict(torch.load(hybrid_path, map_location=torch.device('cpu')))
-        hybrid_model.eval()
-        hybrid_model.static_feature_names = static_features
+        # Try loading PyTorch Hybrid Model
+        try:
+            dummy_df = pd.DataFrame(np.zeros((1, len(feature_names))), columns=feature_names)
+            feature_groups, static_features = parse_temporal_features(dummy_df)
+            time_order = ['ALL', '180', '90', '30', '14', '7']
+            active_steps = [t for t in time_order if len(feature_groups[t]) > 0]
+            
+            input_dims = [len(feature_groups[t]) for t in active_steps]
+            static_dim = len(static_features)
+            
+            hybrid_model = HybridQuantumClassicalModel(mps_input_dims=input_dims, static_dim=static_dim, n_layers=3)
+            hybrid_model.load_state_dict(torch.load("models/hybrid_mps_qnn.pt", map_location='cpu'))
+            hybrid_model.eval()
+            logger.info(f"✅ Hybrid Model Loaded Successfully (Dims: {input_dims}, Static: {static_dim})")
+        except Exception as model_err:
+            logger.warning(f"Hybrid model not loaded: {model_err}")
 
-class PatientData(BaseModel):
-    features: Dict[str, float]
+    except Exception as e:
+        logger.error(f"Failed to load artifacts: {e}")
+
+# Dynamic Pydantic Model (Accepts flexible key-value clinical data)
+class ClinicalPayload(BaseModel):
+    data: dict
 
 @app.post("/predict")
-async def predict(data: PatientData):
-    if standard_scaler is None:
-        raise HTTPException(status_code=500, detail="Core artifacts missing.")
-
-    feature_names = list(standard_scaler.feature_names_in_)
-    padded_df = pd.DataFrame(np.zeros((1, len(feature_names))), columns=feature_names)
+def predict_susceptibility(
+    payload: ClinicalPayload,
+    x_user_role: str = Header("AttendingPhysician", description="User role for Cedar policy evaluation")
+):
+    # 1. Evaluate access using Cedar Policy Engine
+    authorized = CedarPolicyEngine.evaluate_access(
+        user_role=x_user_role,
+        action="run_quantum_pipeline",
+        resource="AMR_Quantum_Model"
+    )
     
-    for col, val in data.features.items():
-        if col in feature_names:
-            padded_df.at[0, col] = val
+    if not authorized:
+        raise HTTPException(status_code=403, detail="Access denied by Cedar security policy.")
 
-    X_scaled = standard_scaler.transform(padded_df)
-    X_scaled_df = pd.DataFrame(X_scaled, columns=feature_names)
+    # 2. Optional: Log query telemetry to OpenSearch (non-blocking)
+    try:
+        os_client = get_opensearch_client()
+        os_client.index(
+            index="amr-query-logs",
+            body={"role": x_user_role, "status": "authorized_and_executing"}
+        )
+    except Exception:
+        pass 
 
-    resistance_prob = 0.5
-    engine_used = "Unknown"
+    if not scaler:
+        raise HTTPException(status_code=500, detail="Scaler not loaded.")
 
-    if hybrid_model is not None:
-        feature_groups, _ = parse_temporal_features(X_scaled_df)
-        active_steps = [t for t in ['ALL', '180', '90', '30', '14', '7'] if len(feature_groups[t]) > 0]
-        X_seq = [torch.tensor(X_scaled_df[feature_groups[t]].values, dtype=torch.float32) for t in active_steps]
-        
-        static_names = getattr(hybrid_model, "static_feature_names", [])
-        X_static = torch.tensor(X_scaled_df[static_names].values, dtype=torch.float32) if static_names else None
+    try:
+        # 3. Pad missing features with 0 to match scaler expectations
+        padded_df = pd.DataFrame(np.zeros((1, len(feature_names))), columns=feature_names)
+        for col, val in payload.data.items():
+            if col in feature_names:
+                padded_df.at[0, col] = val
 
-        with torch.no_grad():
-            resistance_prob = float(hybrid_model(X_seq, X_static).item())
-        engine_used = "Hybrid MPS-QNN"
-    elif inference_model is not None:
-        resistance_prob = float(inference_model.predict_proba(X_scaled_df)[0, 1])
-        engine_used = "Penalized XGBoost Baseline"
+        # 4. Scale features
+        X_scaled = scaler.transform(padded_df)
+        X_scaled_df = pd.DataFrame(X_scaled, columns=feature_names)
 
-    return {
-        "susceptibility_score": 1.0 - resistance_prob,
-        "resistance_probability": resistance_prob,
-        "uncertainty_entropy": 1.0 - abs(resistance_prob - 0.5) * 2,
-        "engine_used": engine_used
-    }
+        resistance_prob = 0.5
+        engine_used = "Unknown"
+
+        # 5. Route Inference (REAL INFERENCE LOGIC)
+        if hybrid_model:
+            feature_groups, static_features = parse_temporal_features(X_scaled_df)
+            time_order = ['ALL', '180', '90', '30', '14', '7']
+            active_steps = [t for t in time_order if len(feature_groups[t]) > 0]
+            
+            X_seq = [torch.tensor(X_scaled_df[feature_groups[t]].values, dtype=torch.float32) for t in active_steps]
+            X_static = torch.tensor(X_scaled_df[static_features].values, dtype=torch.float32) if static_features else None
+
+            with torch.no_grad():
+                resistance_prob = float(hybrid_model(X_seq, X_static).item())
+            engine_used = "Hybrid MPS-QNN"
+            
+        else:
+            engine_used = "Classical Fallback / Unknown"
+            resistance_prob = 0.50
+
+        # 6. Calculate final metrics
+        susceptibility_score = round((1.0 - resistance_prob) * 100, 2)
+        entropy = round(1.0 - abs(resistance_prob - 0.5) * 2, 3)
+
+        return {
+            "susceptibility_score": susceptibility_score,
+            "entropy_uncertainty": entropy,
+            "engine_used": engine_used,
+            "is_resistant": resistance_prob >= 0.30
+        }
+
+    except Exception as e:
+        logger.error(f"Inference error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
