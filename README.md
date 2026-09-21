@@ -1,1624 +1,1181 @@
-# 🧬 AMR-UTI Prediction Engine
-## Fault-Tolerant Hybrid Quantum-Classical AI for Antimicrobial Resistance Prediction
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
-  <img src="https://img.shields.io/badge/PennyLane-Quantum%20ML-6C3483?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/XGBoost-Classical%20ML-EC6C00?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Scikit--Learn-ML-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white"/>
-  <img src="https://img.shields.io/badge/AWS%20Braket-Quantum%20Cloud-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Streamlit-Frontend-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white"/>
-</p>
+# AMR-UTI Prediction Engine
 
-<p align="center">
-  <b>AI × Quantum Computing × Clinical Data × Antimicrobial Stewardship</b>
-</p>
+## Hybrid Quantum-Classical Antimicrobial Resistance Decision-Support Prototype
 
-<p align="center">
-  A research-oriented hybrid quantum-classical framework for early antimicrobial resistance risk estimation in urinary tract infections.
-</p>
+The **AMR-UTI Prediction Engine** is a research-oriented machine-learning and quantum-computing project for antimicrobial resistance (AMR) modelling in urinary tract infection (UTI) data.
 
+The project combines longitudinal clinical-data processing, classical machine learning, quantum-machine-learning experiments, uncertainty analysis, model certification, and a clinician-oriented decision-support interface.
 
+The current certified inference system exposes a **788-feature input contract** and produces susceptibility probabilities for four antibiotic targets:
 
-# 📌 Table of Contents
+* **NIT** — Nitrofurantoin
+* **SXT** — Trimethoprim/Sulfamethoxazole
+* **CIP** — Ciprofloxacin
+* **LVX** — Levofloxacin
 
-- [About the Project](#-about-the-project)
-- [The Core Challenge](#-the-core-challenge)
-- [The Solution](#-the-solution)
-- [Key Innovations](#-key-innovations)
-- [Project Objectives](#-project-objectives)
-- [Tech Stack and Architecture](#-tech-stack-and-architecture)
-- [System Architecture](#-system-architecture)
-- [Architecture Layers](#-architecture-layers)
-- [User & Frontend Layer](#1--user--frontend-layer)
-- [Backend & ETL Layer](#2--backend--etl-layer)
-- [Feature Reduction Layer](#3--feature-reduction-layer)
-- [Quantum State Preparation](#4--quantum-state-preparation)
-- [Quantum Execution and Fault Tolerance](#-quantum-execution-and-fault-tolerance)
-- [Clinical Output Layer](#-clinical-output-layer)
-- [How We Used AWS](#-how-we-used-aws)
-- [Dataset and Data Pipeline](#-dataset-and-data-pipeline)
-- [Machine Learning Strategy](#-machine-learning-strategy)
-- [Performance and Evaluation](#-performance-and-evaluation)
-- [Project Structure](#-project-structure)
-- [Installation](#-installation)
-- [Running the Project](#-running-the-project)
-- [End-to-End Workflow](#-end-to-end-workflow)
-- [Research Motivation](#-research-motivation)
-- [Learning and Growth](#-learning-and-growth)
-- [Limitations](#-limitations)
-- [Future Work](#-future-work)
-- [Safety and Intended Use](#-safety-and-intended-use)
-- [Hackathon Alignment](#-hackathon-alignment)
-- [Contributors](#-contributors)
-- [Acknowledgements](#-acknowledgements)
-- [License](#-license)
+The project is intended for **research and demonstration purposes**. It is not a clinically validated diagnostic or treatment system.
 
 ---
 
-# 🧬 About the Project
+## Table of Contents
 
-The **AMR-UTI Prediction Engine** is a fault-tolerant hybrid quantum-classical artificial intelligence framework designed to investigate early prediction of **antimicrobial resistance (AMR)** in **urinary tract infections (UTIs)**.
-
-The project combines longitudinal electronic health record (EHR) information, classical machine learning, tensor-network feature compression, quantum machine learning, probability calibration, and uncertainty quantification into a single decision-support pipeline.
-
-Instead of treating AMR prediction as a conventional binary classification problem alone, the framework is designed to answer three connected questions:
-
-1. **What is the patient's estimated resistance risk?**
-2. **How reliable is the probability produced by the model?**
-3. **When is the model sufficiently uncertain that definitive laboratory testing should remain the source of truth?**
-
-The architecture is explicitly fault-tolerant. Quantum execution is not treated as a single point of failure. Depending on optimization stability and runtime conditions, inference can dynamically route between a Variational Quantum Neural Network (QNN), a Quantum Support Vector Machine (QSVM), and a classical XGBoost fallback.
-
-> **Core Research Question**
->
-> Can a fault-tolerant hybrid quantum-classical architecture provide calibrated and uncertainty-aware antimicrobial resistance predictions from longitudinal clinical data?
+* [Overview](#overview)
+* [Research Objective](#research-objective)
+* [System Architecture](#system-architecture)
+* [Current Certified Inference System](#current-certified-inference-system)
+* [Quantum and Classical Modelling](#quantum-and-classical-modelling)
+* [Model Certification](#model-certification)
+* [Frontend and API](#frontend-and-api)
+* [API Endpoints](#api-endpoints)
+* [Local Demonstration](#local-demonstration)
+* [Cloud Deployment](#cloud-deployment)
+* [Project Structure](#project-structure)
+* [Reproducibility and Integrity](#reproducibility-and-integrity)
+* [Evaluation](#evaluation)
+* [Limitations](#limitations)
+* [Safety and Intended Use](#safety-and-intended-use)
+* [Future Work](#future-work)
+* [Contributors](#contributors)
+* [License](#license)
 
 ---
 
-# 🚨 The Core Challenge
+# Overview
 
-In emergency and clinical medicine, diagnosis and treatment of urinary tract infections can involve **empirical prescribing** while clinicians wait for definitive laboratory culture and antimicrobial susceptibility results.
+Antimicrobial resistance is a major challenge in the treatment of bacterial infections. For urinary tract infections, susceptibility information may not be immediately available when an initial clinical assessment is performed.
 
-The practical challenge is an information gap:
+This project investigates whether machine-learning models can provide **computational susceptibility estimates from structured clinical information**, while explicitly preserving uncertainty and clinician oversight.
+
+The research system explores both classical and quantum approaches rather than assuming that quantum computation is always preferable or always available.
+
+The resulting architecture is therefore designed around three principles:
+
+1. **Model integrity** — the deployed model must correspond to a locked and identifiable artifact.
+2. **Reproducibility** — model files, feature schemas, manifests, and deterministic inference behaviour are explicitly checked.
+3. **Human oversight** — model outputs are presented as decision-support information rather than autonomous clinical decisions.
+
+---
+
+# Research Objective
+
+The central research question is:
+
+> **Can a hybrid quantum-classical modelling pipeline provide reproducible and uncertainty-aware antimicrobial resistance estimates from longitudinal clinical data?**
+
+The broader research workflow investigates:
+
+* longitudinal clinical-data representation,
+* feature engineering,
+* classical machine learning,
+* quantum machine learning,
+* tensor-network representations,
+* probability outputs,
+* uncertainty quantification,
+* model integrity,
+* and fault-tolerant inference strategies.
+
+The project deliberately treats quantum computation as an experimental component rather than making it a mandatory dependency for every inference path.
+
+---
+
+# System Architecture
+
+At a high level, the project follows:
 
 ```text
-Patient Presents
+                 Clinical / Structured Data
+                           │
+                           ▼
+                  Data Processing / ETL
+                           │
+                           ▼
+                 Feature Representation
+                           │
+                           ▼
+                Classical / Quantum Models
+                           │
+                           ▼
+                  Certified Model Artifact
+                           │
+                           ▼
+                  Production Inference API
+                           │
+                           ▼
+                    Frontend Interface
+                           │
+                           ▼
+                 Human / Clinician Review
+```
+
+The current production-oriented implementation separates the model artifact from the user interface.
+
+```text
+┌─────────────────────────────────────────────┐
+│                 Frontend                    │
+│                                             │
+│  React + TypeScript                         │
+│  Patient / scenario interface               │
+│  Results visualization                       │
+└───────────────────┬─────────────────────────┘
+                    │
+                    │ HTTP / JSON
+                    ▼
+┌─────────────────────────────────────────────┐
+│              FastAPI Backend                │
+│                                             │
+│  /health                                    │
+│  /model-info                                │
+│  /predict                                   │
+└───────────────────┬─────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────┐
+│       Certified Inference Engine             │
+│                                             │
+│  Script 36 — Production Inference           │
+│  Script 37 — Clinician Decision Support     │
+└───────────────────┬─────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────┐
+│          Certified Model Artifact             │
+│                                             │
+│  FullHybridModel                            │
+│  52,978 parameters                           │
+│  788 input features                          │
+│  4 output targets                            │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+# Current Certified Inference System
+
+The current certified production artifact is a:
+
+```text
+FullHybridModel
+```
+
+with:
+
+| Property                            |        Certified value |
+| ----------------------------------- | ---------------------: |
+| Input features                      |                **788** |
+| Output targets                      |                  **4** |
+| Model parameters                    |             **52,978** |
+| Targets                             | **NIT, SXT, CIP, LVX** |
+| Model mode                          | Evaluation / inference |
+| Threshold                           |                **0.5** |
+| Model training during inference     |                     No |
+| Official test data during inference |                     No |
+
+The model artifact is identified by the following SHA-256 digest:
+
+```text
+db708f2c18a9390d72af1c520dab460374a737ced00e8c7ec76e3ac315bcc318
+```
+
+This digest is used as an integrity identifier for the certified model file.
+
+---
+
+# Quantum and Classical Modelling
+
+The broader research pipeline explores hybrid quantum-classical modelling.
+
+The experimental architecture includes components such as:
+
+```text
+Clinical Features
        │
        ▼
-Clinical Assessment
+Feature Representation
        │
        ▼
-Empirical Treatment
+Quantum / Classical Processing
        │
-       │
-       │   ⏳ Laboratory Processing
+ ┌─────┼─────────┐
+ │     │         │
+ ▼     ▼         ▼
+QNN   QSVM    XGBoost
+ │     │         │
+ └─────┼─────────┘
+       ▼
+Prediction / Probability
        │
        ▼
-Culture + Susceptibility Results
-       │
-       ▼
-Targeted Treatment
+Uncertainty Analysis
 ```
 
-The conventional workflow can create a substantial delay before definitive susceptibility information becomes available.
+Quantum experiments are implemented using tools including:
 
-During this period, clinical decisions may need to be made using incomplete information. This creates an opportunity for computational systems to estimate resistance risk using data that is already available.
+* PyTorch
+* PennyLane
+* quantum simulators
+* quantum kernels
+* tensor-network methods
+* AWS Braket experimentation
 
-The project therefore investigates whether longitudinal EHR information can provide an **early resistance-risk estimate** before definitive laboratory susceptibility results become available.
+Classical components include:
+
+* XGBoost
+* Scikit-Learn
+* NumPy
+* Pandas
+* PyTorch
+
+The classical path is important because quantum execution can be subject to optimisation instability, simulator/runtime limitations, backend availability, or hardware constraints.
 
 ---
 
-# 💡 The Solution
+# Model Certification
 
-The **AMR-UTI Prediction Engine** is designed as a layered AI system that transforms longitudinal clinical information into a calibrated antimicrobial resistance estimate.
+A major part of the project is the **certification and provenance layer**.
 
-The framework incorporates:
+The certification workflow verifies that the model used by the application is the expected model artifact rather than an independently reconstructed or silently modified version.
 
-- longitudinal EHR-derived features,
-- temporal feature representation,
-- Matrix Product State (MPS) compression,
-- quantum feature embedding,
-- Variational Quantum Neural Networks,
-- Quantum Support Vector Machines,
-- XGBoost fallback inference,
-- SMOTE for class imbalance,
-- Platt Scaling / probability calibration,
-- Precision-Recall threshold optimization,
-- and Shannon Entropy-based uncertainty quantification.
+The certification process checks:
 
-The overall concept is:
+* model SHA-256,
+* parameter count,
+* state-dict entry count,
+* state-dict keys,
+* state-dict tensor shapes,
+* tensor dtypes,
+* total weight element count,
+* model metadata,
+* Script 33 manifest,
+* Script 35 certification report,
+* forward-output contract,
+* deterministic inference behaviour.
+
+The certified model contains:
 
 ```text
-Longitudinal EHR Data
-         │
-         ▼
-   ETL & Cleaning
-         │
-         ▼
-Temporal Representation
-         │
-         ▼
-      MPS Layer
-         │
-         ▼
- Quantum State Preparation
-         │
-         ▼
- ┌────────────────────────┐
- │ Quantum Health Check   │
- │ Gradient Variance      │
- └────────────┬───────────┘
-              │
-       ┌──────┼───────┐
-       │      │       │
-       ▼      ▼       ▼
-      QNN    QSVM   XGBoost
-       │      │       │
-       └──────┼───────┘
-              ▼
-    Probability Calibration
-              │
-              ▼
-     Entropy / Uncertainty
-              │
-              ▼
-      Clinical Risk Output
+52,978 parameters
+11 state-dict entries
+4 output values
 ```
 
----
-
-# 🔬 Key Innovations
-
-## 1. SMOTE for Severe Class Imbalance
-
-AMR datasets can contain substantially more susceptible observations than resistant observations.
-
-This creates a class-imbalance problem in which a model may achieve high aggregate accuracy while performing poorly on the clinically important minority class.
-
-The framework therefore incorporates **SMOTE (Synthetic Minority Oversampling Technique)** to improve representation of the resistant class during training.
-
----
-
-## 2. Platt Scaling for Probability Calibration
-
-A classification probability is not automatically a reliable estimate of real-world event frequency.
-
-The framework incorporates probability calibration using **Platt Scaling** so that the downstream system can work with more meaningful probability estimates.
-
-This is especially important because these probabilities are subsequently used for:
-
-- risk interpretation,
-- threshold decisions,
-- and entropy-based uncertainty estimation.
-
----
-
-## 3. Precision-Recall Threshold Optimization
-
-Instead of assuming that the default threshold of `0.50` is optimal, the framework analyzes the Precision-Recall relationship and tunes the classification threshold.
-
-The objective is to explicitly consider the trade-off between:
-
-- minority-class recall,
-- precision,
-- false positives,
-- false negatives,
-- and F1 score.
-
----
-
-## 4. Shannon Entropy Uncertainty Quantification
-
-The system does not only ask whether a case is classified as resistant.
-
-It also asks:
-
-> **How uncertain is the model about this prediction?**
-
-For binary probability \(p\), Shannon entropy is:
-
-\[
-H = -\left[p\log_2(p) + (1-p)\log_2(1-p)\right]
-\]
-
-where:
-
-- \(p\) = calibrated probability of resistance,
-- \(H\) = Shannon entropy in bits.
-
-The framework uses:
-
-\[
-H > 0.40 \text{ bits}
-\]
-
-as a high-uncertainty condition.
-
-Such predictions are flagged for additional attention and definitive laboratory confirmation.
-
----
-
-## 5. Fault-Tolerant Quantum-Classical Execution
-
-The framework does not depend on the success of a single quantum model.
-
-It dynamically routes inference across:
+The recorded model SHA-256 is:
 
 ```text
-Healthy Quantum Optimization
-          │
-          ▼
-         QNN
-
-Barren Plateau / Unstable Gradient
-          │
-          ▼
-         QSVM
-
-Quantum Runtime / Hardware Failure
-          │
-          ▼
-       XGBoost
+db708f2c18a9390d72af1c520dab460374a737ced00e8c7ec76e3ac315bcc318
 ```
 
-This provides a classical safety path when quantum execution becomes unreliable or unavailable.
-
----
-
-# 🎯 Project Objectives
-
-The project is designed around four primary objectives.
-
-### Objective 1 — Early Risk Estimation
-
-Estimate antimicrobial resistance risk from information available before complete susceptibility results.
-
-### Objective 2 — Fault-Tolerant AI
-
-Maintain inference capability when quantum optimization or quantum runtime execution becomes unstable.
-
-### Objective 3 — Calibrated Predictions
-
-Convert raw model outputs into probability estimates that are more suitable for downstream decision support.
-
-### Objective 4 — Uncertainty-Aware Decision Support
-
-Identify cases where the model is uncertain and should defer to definitive laboratory evidence.
-
----
-
-# ⚙️ Tech Stack and Architecture
-
-## Languages & Core Libraries
-
-| Technology | Purpose |
-|---|---|
-| **Python 3.11+** | Core development and execution environment |
-| **PyTorch** | Tensor operations, neural components, automatic differentiation |
-| **PennyLane** | Quantum circuits and hybrid quantum-classical execution |
-| **XGBoost** | Classical fallback prediction engine |
-| **Scikit-Learn** | Preprocessing, scaling, metrics, evaluation |
-| **NumPy** | Numerical computation |
-| **Pandas** | Tabular data processing and ETL |
-
----
-
-## Quantum Computing Stack
-
-| Technology | Purpose |
-|---|---|
-| **PennyLane** | Variational quantum circuits and QML |
-| **AWS Braket** | Cloud quantum execution infrastructure |
-| **Matrix Product States** | Tensor-network temporal feature compression |
-| **Quantum Kernel / QSVM** | Non-variational quantum fallback |
-
----
-
-## Frontend
-
-| Technology | Purpose |
-|---|---|
-| **Streamlit** | Interactive dashboard, patient intake, dynamic risk evaluation |
-
----
-
-# 🏗️ System Architecture
-
-The framework is organized into four primary layers:
+The Script 30 SHA-256 is:
 
 ```text
-┌───────────────────────────────────────────────────────────┐
-│                  1. USER / FRONTEND LAYER                │
-│                                                           │
-│  Streamlit Dashboard                                      │
-│  • Patient intake                                         │
-│  • Clinical variables                                     │
-│  • Chronological history                                  │
-│  • Dynamic lookback windows                               │
-└───────────────────────────────┬───────────────────────────┘
-                                │
-                                ▼
-┌───────────────────────────────────────────────────────────┐
-│                  2. BACKEND / ETL LAYER                   │
-│                                                           │
-│  • Data ingestion                                         │
-│  • Leakage prevention                                     │
-│  • Missing-value processing                               │
-│  • Sequential interpolation                               │
-│  • Standardization                                        │
-└───────────────────────────────┬───────────────────────────┘
-                                │
-                                ▼
-┌───────────────────────────────────────────────────────────┐
-│                 3. AI / ML PROCESSING LAYER               │
-│                                                           │
-│  • MPS temporal compression                              │
-│  • Quantum state preparation                             │
-│  • Variational QNN                                       │
-│  • QSVM                                                  │
-│  • XGBoost fallback                                      │
-│  • Gradient variance monitoring                           │
-└───────────────────────────────┬───────────────────────────┘
-                                │
-                                ▼
-┌───────────────────────────────────────────────────────────┐
-│                 4. CLINICAL OUTPUT LAYER                 │
-│                                                           │
-│  • Resistance probability                                │
-│  • Susceptibility score                                  │
-│  • Probability calibration                               │
-│  • Shannon entropy                                       │
-│  • Threshold-based output                                │
-└───────────────────────────────────────────────────────────┘
+12d2d201c9153253632383c598b8e360bcc5dc61b0492bf4233b406d7b6cdb3a
 ```
 
----
+The certification workflow also verifies deterministic inference.
 
-# 🧩 Architecture Layers
-
-# 1. 👨‍⚕️ User & Frontend Layer
-
-The primary user interacts with a **Streamlit clinical decision-support dashboard**.
-
-The interface is designed to capture patient-level information and provide a dynamic representation of chronological history.
-
-The system can work with temporal lookback windows such as:
+The recorded self-test reports:
 
 ```text
-ALL
-180 days
-90 days
-30 days
-14 days
-7 days
+Forward contract: PASS
+Deterministic inference: PASS
+Exact repeat equality: True
+Maximum absolute difference: 0
 ```
 
-These windows allow the longitudinal history to be processed before entering the temporal feature-reduction layer.
+These checks are intended to establish **artifact integrity and reproducibility**, not clinical validity.
 
 ---
 
-# 2. 🔄 Backend & ETL Layer
+# Feature Contract
 
-## Data Ingestion
-
-Raw EHR feature records and resistance-label records are merged using:
+The production inference system requires exactly:
 
 ```text
-example_id
+788 features
 ```
 
-The ingestion process also removes metadata or cohort-splitting variables that may create leakage between training and inference.
-
-Examples include:
+The feature schema is locked in:
 
 ```text
-is_train
-uncomplicated
+modeling_contract/feature_names.json
 ```
 
-This prevents model training from exploiting information about how the dataset itself was constructed.
-
----
-
-## Sequential Imputation
-
-Longitudinal healthcare data frequently contains temporal gaps.
-
-The preprocessing pipeline performs **linear interpolation across sequential time steps** where applicable.
-
-Residual missing events are assigned zero values in the relevant representation so that the chronological structure is preserved without flattening the patient history.
-
----
-
-## StandardScaler Normalization
-
-Numerical features are standardized before downstream dimensionality reduction.
-
-\[
-z_i = \frac{x_i - \mu}{\sigma}
-\]
-
-where:
-
-- \(x_i\) = original feature,
-- \(\mu\) = feature mean,
-- \(\sigma\) = feature standard deviation,
-- \(z_i\) = standardized value.
-
----
-
-# 3. 🧬 Feature Reduction Layer
-
-## Matrix Product State (MPS) Tensor Network
-
-Longitudinal clinical data can have a very large feature dimension.
-
-The framework therefore applies a **Matrix Product State (MPS)** representation to compress temporal information before quantum encoding.
-
-The patient's history is organized into chronological windows:
+The repository also maintains supporting contract artifacts:
 
 ```text
-Patient Timeline
-│
-├── 180 days
-├── 90 days
-├── 30 days
-├── 14 days
-└── 7 days
+modeling_contract/
+├── feature_names.json
+├── locked_feature_manifest.csv
+├── modeling_contract.json
+├── target_names.json
+├── target_summary.csv
+├── test_data.npz
+└── train_data.npz
 ```
 
-The MPS representation iteratively contracts temporal features while maintaining a hidden memory state that is propagated across successive windows.
+The application intentionally refuses to invent or reconstruct the feature schema if the locked feature contract is unavailable.
+
+This behaviour is deliberate: silently generating a different feature ordering could cause an apparently valid model request to use semantically incorrect inputs.
+
+---
+
+# Frontend and API
+
+The current user interface is a React/TypeScript frontend.
+
+The frontend communicates with the backend through HTTP requests.
+
+The frontend API layer is located at:
+
+```text
+frontend/src/api/backend.ts
+```
+
+The primary operations are:
+
+```text
+GET  /health
+GET  /model-info
+POST /predict
+```
+
+The frontend sends prediction requests as JSON.
+
+The certified prediction interface expects:
+
+```json
+{
+  "features": [
+    0.0,
+    0.0,
+    0.0
+  ]
+}
+```
+
+with exactly **788 numeric feature values**.
+
+The frontend validates this requirement before sending the request.
+
+---
+
+# API Endpoints
+
+## `GET /health`
+
+Returns service and model health information.
+
+Example:
+
+```json
+{
+  "status": "ok",
+  "application_version": "37.1-certified-clinician-cds",
+  "model_version": "script33-final-certified",
+  "model_sha256": "db708f2c18a9390d72af1c520dab460374a737ced00e8c7ec76e3ac315bcc318",
+  "feature_count": 788,
+  "targets": [
+    "NIT",
+    "SXT",
+    "CIP",
+    "LVX"
+  ]
+}
+```
+
+---
+
+## `GET /model-info`
+
+Returns metadata describing the certified inference model.
+
+Example:
+
+```json
+{
+  "application_version": "37.1-certified-clinician-cds",
+  "model_version": "script33-final-certified",
+  "engine_version": "script36-production",
+  "model_class": "FullHybridModel",
+  "parameter_count": 52978,
+  "feature_count": 788,
+  "targets": [
+    "NIT",
+    "SXT",
+    "CIP",
+    "LVX"
+  ],
+  "threshold": 0.5,
+  "threshold_optimization": false,
+  "calibration": false,
+  "model_training": false,
+  "official_test_usage": false,
+  "model_sha256": "db708f2c18a9390d72af1c520dab460374a737ced00e8c7ec76e3ac315bcc318",
+  "script30_sha256": "12d2d201c9153253632383c598b8e360bcc5dc61b0492bf4233b406d7b6cdb3a"
+}
+```
+
+---
+
+## `POST /predict`
+
+Runs inference using the certified model.
+
+Request:
+
+```json
+{
+  "features": [788 numeric values]
+}
+```
+
+The service validates:
+
+1. the request structure,
+2. feature count,
+3. numerical finiteness,
+4. the locked feature contract,
+5. and the certified model artifact.
+
+The response contains susceptibility-related prediction information for:
+
+```text
+NIT
+SXT
+CIP
+LVX
+```
+
+The frontend normalizes the returned payload into its internal `CertifiedPrediction` representation.
+
+---
+
+# Authentication
+
+The API supports clinician/API-key authentication for protected endpoints.
+
+The local demonstration uses:
+
+```text
+X-Clinician-Api-Key
+```
+
+For example:
+
+```bash
+curl -fsS \
+  -H "X-Clinician-Api-Key: test-only-key" \
+  http://127.0.0.1:8080/model-info
+```
+
+An unauthenticated request to a protected endpoint should return:
+
+```text
+HTTP 401
+```
+
+The authentication mechanism used in the current MVP is intended for controlled demonstration and development environments.
+
+It should not be treated as a complete production identity-management system.
+
+A future production deployment should use an appropriate identity and access-management layer, secret management, auditing, and role-based access control.
+
+---
+
+# Local Demonstration
+
+The application can be tested locally through the Docker image.
+
+First define the image:
+
+```bash
+export IMAGE="asia-south1-docker.pkg.dev/amr-uti-prediction-system/uti-amr-production/uti-amr-clinician:latest"
+```
+
+Pull the image:
+
+```bash
+docker pull "$IMAGE"
+```
+
+Run the container:
+
+```bash
+docker run --rm \
+  -e PORT=8080 \
+  -e CLINICIAN_API_KEY="test-only-key" \
+  -p 8080:8080 \
+  "$IMAGE"
+```
+
+The service should then listen on:
+
+```text
+http://127.0.0.1:8080
+```
+
+---
+
+## Verify the Frontend
+
+Open:
+
+```text
+http://127.0.0.1:8080/
+```
+
+The frontend should return the Q-ABX application.
+
+A command-line check is:
+
+```bash
+curl -i http://127.0.0.1:8080/
+```
+
+The returned HTML should contain the application title and frontend assets.
+
+---
+
+## Verify Health
+
+```bash
+curl -fsS \
+  http://127.0.0.1:8080/health \
+  | python3 -m json.tool
+```
+
+---
+
+## Verify Authentication
+
+Unauthenticated:
+
+```bash
+curl -sS \
+  -o /tmp/model-info-noauth.json \
+  -w "HTTP_STATUS=%{http_code}\n" \
+  http://127.0.0.1:8080/model-info
+```
+
+Expected:
+
+```text
+HTTP_STATUS=401
+```
+
+Authenticated:
+
+```bash
+curl -fsS \
+  -H "X-Clinician-Api-Key: test-only-key" \
+  http://127.0.0.1:8080/model-info \
+  | python3 -m json.tool
+```
+
+---
+
+# Testing the Prediction Endpoint
+
+The model requires a vector of exactly 788 numerical values.
+
+For a structural API smoke test, a JSON payload can be generated from the shell.
+
+```bash
+python3 - <<'PY'
+import json
+
+payload = {
+    "features": [0.0] * 788
+}
+
+with open("/tmp/test_prediction.json", "w") as f:
+    json.dump(payload, f)
+
+print("Created /tmp/test_prediction.json")
+print("Feature count:", len(payload["features"]))
+PY
+```
+
+Then send the request:
+
+```bash
+curl -fsS \
+  -H "Content-Type: application/json" \
+  -H "X-Clinician-Api-Key: test-only-key" \
+  --data-binary @/tmp/test_prediction.json \
+  http://127.0.0.1:8080/predict \
+  | python3 -m json.tool
+```
+
+This verifies the complete request path:
+
+```text
+JSON
+ ↓
+FastAPI
+ ↓
+Input validation
+ ↓
+Certified model
+ ↓
+Inference
+ ↓
+JSON response
+```
+
+For meaningful scientific evaluation, the feature vector must correspond to the locked feature schema and a valid test case. An all-zero vector is only a **transport/integration smoke test** and should not be interpreted as a clinically meaningful patient example.
+
+---
+
+# Cloud Deployment
+
+The project has been containerized for Google Cloud deployment.
+
+The relevant Google Cloud components are:
+
+* Google Cloud Build
+* Artifact Registry
+* Cloud Run
+* Cloud Logging
+
+The project uses:
+
+```text
+Project:
+amr-uti-prediction-system
+
+Region:
+asia-south1
+
+Artifact Registry repository:
+uti-amr-production
+
+Cloud Run service:
+uti-amr-clinician
+```
+
+The production image is stored as:
+
+```text
+asia-south1-docker.pkg.dev/amr-uti-prediction-system/uti-amr-production/uti-amr-clinician
+```
+
+---
+
+# Container Structure
+
+The production deployment context contains the components required by the certified application.
 
 Conceptually:
 
 ```text
-Temporal Features
-       │
-       ▼
- ┌─────────────┐
- │   Window 1  │
- └──────┬──────┘
-        │
-        ▼
- ┌─────────────┐
- │   Window 2  │
- └──────┬──────┘
-        │
-        ▼
- ┌─────────────┐
- │   Window 3  │
- └──────┬──────┘
-        │
-        ▼
- Hidden Temporal State
-```
-
-This reduces the dimensionality of the input while maintaining temporal information.
-
----
-
-# 4. ⚛️ Quantum State Preparation
-
-The compressed classical temporal representation is transformed into a quantum feature representation.
-
-The features are scaled into:
-
-\[
-[0,\pi]
-\]
-
-and then incorporated through **angle-based quantum feature embedding**.
-
-The resulting representation becomes the input to the variational quantum execution stage.
-
----
-
-# ⚛️ Quantum Execution and Fault Tolerance
-
-## Gradient Variance Monitoring
-
-Variational quantum circuits can suffer from optimization instability associated with **barren plateaus**.
-
-The framework monitors the variance of the circuit gradients:
-
-\[
-\operatorname{Var}(\nabla_\theta)
-\]
-
-The system considers the quantum optimization landscape unstable when:
-
-\[
-\operatorname{Var}(\nabla_\theta)<10^{-4}
-\]
-
-This condition becomes a routing signal for the fault-tolerant execution layer.
-
----
-
-# 🛣️ Three-Path Execution Cascade
-
-```text
-                    Quantum Feature State
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │ Gradient Variance   │
-                  │      Monitor        │
-                  └─────────┬───────────┘
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-          ▼                 ▼                 ▼
-       Healthy          Barren            Runtime /
-       Gradient         Plateau            Hardware Error
-          │                 │                 │
-          ▼                 ▼                 ▼
-       QNN               QSVM             XGBoost
-          │                 │                 │
-          └─────────────────┼─────────────────┘
-                            │
-                            ▼
-                    Probability Output
-```
-
----
-
-## Path A — Variational Quantum Neural Network
-
-When the quantum circuit demonstrates healthy gradient behaviour, inference follows:
-
-**Variational Quantum Neural Network (QNN)**.
-
-This combines:
-
-- PyTorch,
-- PennyLane,
-- parameterized quantum circuits,
-- automatic differentiation,
-- gradient-based parameter optimization.
-
-The system can optionally fuse additional static clinical features into the quantum embedding.
-
----
-
-## Path B — Quantum Support Vector Machine
-
-When gradient variance indicates a barren plateau or unstable variational optimization, the framework switches to:
-
-**Quantum Support Vector Machine (QSVM)**.
-
-The QSVM uses a precomputed quantum-kernel Gram matrix, reducing dependence on unstable variational training dynamics.
-
----
-
-## Path C — Penalized XGBoost
-
-When quantum execution encounters:
-
-- hardware errors,
-- execution timeouts,
-- backend availability issues,
-- or other quantum runtime failures,
-
-the system falls back to:
-
-**Penalized XGBoost**.
-
-The classical fallback uses L1/L2 regularization to provide a robust alternative when quantum execution is unavailable.
-
----
-
-# 🏥 Clinical Output Layer
-
-## Resistance Probability
-
-The model generates:
-
-\[
-P(Y=1\mid X)
-\]
-
-where:
-
-- \(Y=1\) = resistant phenotype,
-- \(X\) = patient feature representation.
-
----
-
-## Susceptibility Score
-
-The framework converts resistance probability into a complementary susceptibility score:
-
-\[
-S(X)=1-P(Y=1\mid X)
-\]
-
-where:
-
-- \(P(Y=1\mid X)\) = predicted probability of resistance,
-- \(S(X)\) = estimated susceptibility score.
-
----
-
-# 📐 Probability Calibration
-
-The model output is calibrated before uncertainty assessment.
-
-The project uses **Platt Scaling / temperature-based probability calibration** to reduce probability distortion and make the output more suitable for threshold and uncertainty analysis.
-
-The conceptual goal is:
-
-```text
-Raw Model Probability
-        │
-        ▼
-Probability Calibration
-        │
-        ▼
-Calibrated Probability
-        │
-        ├───────────────┐
-        ▼               ▼
- Decision Threshold   Entropy
-```
-
----
-
-# 🌡️ Shannon Entropy Uncertainty Budget
-
-For a binary probability \(p\), Shannon entropy is:
-
-\[
-H = -\left[p\log_2(p)+(1-p)\log_2(1-p)\right]
-\]
-
-The resulting quantity is measured in **bits**.
-
-A higher entropy indicates that the model's probability distribution is more uncertain.
-
-The project uses:
-
-\[
-H>0.40\text{ bits}
-\]
-
-as the threshold for high uncertainty.
-
-When the prediction exceeds this uncertainty budget, the system recommends obtaining **definitive laboratory culture / susceptibility evidence** rather than relying on the model alone.
-
----
-
-# 🚨 Clinical Alert Decision
-
-The calibrated resistance probability is compared against a safety-oriented decision threshold.
-
-The final output combines:
-
-```text
-Calibrated Resistance Probability
-                +
-       Decision Threshold
-                +
-       Shannon Entropy
-                ↓
-      Decision-Support Output
-```
-
-Possible outputs can be presented as resistance-risk and uncertainty information rather than an autonomous treatment recommendation.
-
----
-
-# ☁️ How We Used AWS
-
-## AWS Braket Integration
-
-AWS is used as the cloud quantum-computing layer through **Amazon Braket**.
-
-The framework is designed to decouple local development from the execution backend.
-
-```text
-                    Hybrid Application
-                           │
-                           ▼
-                  Quantum Abstraction
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-             ▼                           ▼
-      Local Simulation              AWS Braket
-                                         │
-                                ┌────────┴────────┐
-                                ▼                 ▼
-                              SV1               QPU
-```
-
----
-
-## Cloud Quantum Execution
-
-The system can leverage AWS Braket simulators such as **SV1** and cloud-accessible quantum processing units for quantum circuit execution.
-
-This creates a path from local experimentation toward cloud-accessible quantum computing.
-
----
-
-## Why AWS Braket?
-
-The main architectural motivation is **decoupling**.
-
-Rather than hard-coding the entire application around a single local quantum simulator, the architecture allows the quantum execution layer to communicate with a cloud quantum backend.
-
-This is important because quantum workloads can require:
-
-- additional compute capacity,
-- specialized simulators,
-- access to real QPUs,
-- and experimentation across different execution environments.
-
----
-
-## NISQ-Era Readiness
-
-The architecture is designed with the **Noisy Intermediate-Scale Quantum (NISQ)** era in mind.
-
-The system does not assume:
-
-- quantum hardware is always available,
-- optimization is always stable,
-- execution is always fast,
-- or quantum hardware never fails.
-
-Instead, it creates explicit fallback mechanisms:
-
-```text
-Quantum Model
-     │
-     ├── Healthy → QNN
-     │
-     ├── Barren Plateau → QSVM
-     │
-     └── Runtime Failure → XGBoost
-```
-
-This provides a more resilient path toward future quantum-enabled healthcare experimentation.
-
----
-
-# 📊 Dataset and Data Pipeline
-
-The framework works with longitudinal UTI-related clinical data and antimicrobial resistance labels.
-
-The raw-data layer contains:
-
-```text
-data/
-├── raw/
-│   ├── all_uti_features.csv
-│   ├── all_uti_resist_labels.csv
-│   ├── all_prescriptions.csv
-│   └── data_dictionary.csv
+/app
 │
-└── processed/
-    └── processed_clinical_data.csv
-```
-
-The high-level data pipeline is:
-
-```text
-Raw EHR Features
-       +
-Resistance Labels
-       +
-Prescription Information
-       │
-       ▼
-Data Integration
-       │
-       ▼
-Leakage Prevention
-       │
-       ▼
-Sequential Imputation
-       │
-       ▼
-Standardization
-       │
-       ▼
-Temporal Window Construction
-       │
-       ▼
-MPS Representation
-       │
-       ▼
-Quantum / Classical Inference
-```
-
----
-
-# ⚖️ Machine Learning Strategy
-
-## Why Accuracy Alone Is Not Enough
-
-Medical datasets can be highly imbalanced.
-
-If susceptible cases substantially outnumber resistant cases, a classifier can obtain apparently strong accuracy while failing to identify the minority resistant phenotype.
-
-For this reason, the project emphasizes:
-
-- minority-class recall,
-- precision,
-- F1 score,
-- Precision-Recall analysis,
-- probability calibration,
-- and uncertainty.
-
----
-
-## SMOTE
-
-**SMOTE** is used to improve representation of the minority class during training.
-
-The conceptual workflow is:
-
-```text
-Original Training Data
-        │
-        ▼
-Class Distribution Analysis
-        │
-        ▼
-      SMOTE
-        │
-        ▼
-Balanced Training Representation
-        │
-        ▼
-Model Training
-```
-
-SMOTE is applied as part of the training workflow rather than to the held-out evaluation population.
-
----
-
-## Threshold Optimization
-
-The default classification threshold is:
-
-\[
-0.50
-\]
-
-The framework also analyzes the Precision-Recall curve and selects an optimized decision threshold based on the project objective.
-
-This creates a deliberate balance between:
-
-```text
-False Negatives
-       ↕
-False Positives
-       ↕
-Minority Recall
-       ↕
-Precision
-       ↕
-F1 Score
-```
-
----
-
-# 📈 Performance and Evaluation
-
-## Test Cohort
-
-The reported test cohort contains:
-
-**22,153 patient records**
-
-| Configuration | Value |
-|---|---:|
-| Test cohort | **22,153 records** |
-| Default threshold | **0.50** |
-| Optimized threshold | Precision-Recall tuned |
-| Optimization objective | **F1 + minority-class recall** |
-
----
-
-## Classification Performance
-
-| Class | Precision | Recall | F1-Score | Support |
-|---|---:|---:|---:|---:|
-| **Susceptible (0)** | 0.89 | 0.85 | 0.87 | 17,476 |
-| **Resistant (1)** | 0.53 | 0.61 | 0.57 | 4,677 |
-| **Overall Accuracy** | — | — | **80.0%** | **22,153** |
-
----
-
-## Key Result
-
-The threshold-tuned system reports:
-
-- **80.0% overall accuracy**
-- **61% recall for the Resistant minority class**
-
-The result reflects an intentional trade-off between false negatives and false positives rather than optimizing accuracy alone.
-
-> **Clinical Note:** These results represent a research and decision-support evaluation. They should not be interpreted as clinical validation or as evidence that the system can replace laboratory susceptibility testing.
-
----
-
-# 📏 Evaluation Metrics
-
-| Metric | Purpose |
-|---|---|
-| **Accuracy** | Overall prediction correctness |
-| **Precision** | Reliability of positive resistance predictions |
-| **Recall** | Ability to identify resistant cases |
-| **F1 Score** | Balance between precision and recall |
-| **ROC-AUC** | Overall discrimination across thresholds |
-| **PR-AUC** | Performance under class imbalance |
-| **Confusion Matrix** | Detailed prediction error analysis |
-| **Shannon Entropy** | Prediction uncertainty |
-
----
-
-# 📁 Project Structure
-
-```text
-AMR-UTI-First-Commit-Hackathon/
+├── cloud_run_entrypoint.py
 │
-├── data/
-│   ├── raw/
-│   │   ├── all_uti_features.csv
-│   │   ├── all_uti_resist_labels.csv
-│   │   ├── all_prescriptions.csv
-│   │   └── data_dictionary.csv
+├── scripts/
+│   ├── 30_quantum_contribution_ablation.py
+│   ├── 36_production_inference_engine.py
+│   └── 37_clinician_decision_support_app.py
+│
+├── modeling_contract/
+│   └── feature_names.json
+│
+├── audit_outputs/
+│   └── script33_final/
+│       └── final_model.pt
+│
+└── frontend/
+    └── dist/
+        ├── index.html
+        └── assets/
+```
+
+The deployment image must contain both:
+
+```text
+modeling_contract/feature_names.json
+```
+
+and:
+
+```text
+audit_outputs/script33_final/final_model.pt
+```
+
+because Script 37 uses the locked feature contract and certified model artifact during startup.
+
+---
+
+# Deployment Integrity
+
+A successful Docker build alone is not sufficient.
+
+Before considering the container usable, verify that the critical artifacts exist inside the image:
+
+```bash
+docker run --rm "$IMAGE" \
+  python3 -c '
+from pathlib import Path
+
+checks = [
+    "/app/modeling_contract/feature_names.json",
+    "/app/audit_outputs/script33_final/final_model.pt",
+    "/app/frontend/dist/index.html",
+    "/app/scripts/37_clinician_decision_support_app.py",
+]
+
+for path in checks:
+    print(("PASS " if Path(path).exists() else "FAIL ") + path)
+'
+```
+
+Expected:
+
+```text
+PASS /app/modeling_contract/feature_names.json
+PASS /app/audit_outputs/script33_final/final_model.pt
+PASS /app/frontend/dist/index.html
+PASS /app/scripts/37_clinician_decision_support_app.py
+```
+
+---
+
+# Important Deployment Note
+
+Script 37 historically resolves the project root through:
+
+```python
+Path.home() / "uti_amr_quantum_pipeline"
+```
+
+while the production container uses:
+
+```text
+/app
+```
+
+Therefore, the production entrypoint and container layout must be kept consistent with the certified application's path assumptions.
+
+A container can successfully contain the model file at:
+
+```text
+/app/modeling_contract/feature_names.json
+```
+
+and still fail during startup if Script 37 searches for:
+
+```text
+/root/uti_amr_quantum_pipeline/modeling_contract/feature_names.json
+```
+
+This is an **application path-contract issue**, not a Docker or model-integrity issue.
+
+When diagnosing Cloud Run startup failures, inspect the revision logs first.
+
+---
+
+# Project Structure
+
+The current repository contains both research and production-oriented components.
+
+A simplified structure is:
+
+```text
+uti_amr_quantum_pipeline/
+│
+├── modeling_contract/
+│   ├── feature_names.json
+│   ├── locked_feature_manifest.csv
+│   ├── modeling_contract.json
+│   ├── target_names.json
+│   ├── target_summary.csv
+│   ├── train_data.npz
+│   └── test_data.npz
+│
+├── scripts/
+│   ├── 29_quantum_diagnostic.py
+│   ├── 30_quantum_contribution_ablation.py
+│   ├── 36_production_inference_engine.py
+│   └── 37_clinician_decision_support_app.py
+│
+├── audit_outputs/
+│   ├── script33_final/
+│   │   └── final_model.pt
 │   │
-│   └── processed/
-│       └── processed_clinical_data.csv
-│
-├── models/
-│   ├── standard_scaler.pkl
-│   ├── quantum_state_scaler.pkl
-│   ├── xgb_baseline.json
-│   ├── hybrid_mps_qnn.pt
-│   ├── hybrid_mps_qnn_meta.json
-│   ├── qsvm_weights.pkl
-│   ├── qsvm_train_embeddings.npy
-│   ├── qsvm_mps_embedder.pt
-│   └── qsvm_mps_embedder_meta.json
-│
-├── src/
-│   ├── __init__.py
-│   ├── config.py
+│   ├── script35_certification/
 │   │
-│   ├── module1_etl/
-│   │   ├── __init__.py
-│   │   ├── ingestion.py
-│   │   ├── imputation.py
-│   │   └── distribution.py
-│   │
-│   ├── module2_features/
-│   │   ├── __init__.py
-│   │   ├── reduction.py
-│   │   └── state_prep.py
-│   │
-│   └── module3_execution/
-│       ├── __init__.py
-│       ├── quantum_circuit.py
-│       ├── qsvm_fallback.py
-│       └── xgboost_engine.py
+│   └── script36_production/
+│       └── script36_self_test_report.json
 │
-├── apps.py
-├── main.py
-├── evaluate_metrics.py
-├── requirements.txt
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── dist/
+│
+├── cloud_run_deployment/
+│   ├── Dockerfile
+│   ├── cloud_run_entrypoint.py
+│   └── requirements.txt
+│
 └── README.md
 ```
 
 ---
 
-# 🚀 Installation
+# Reproducibility and Integrity
 
-## Prerequisites
+The project treats reproducibility as a first-class engineering requirement.
 
-Install:
-
-- Python **3.11+**
-- Git
-- compatible PyTorch
-- PennyLane
-- XGBoost
-- Scikit-Learn
-- Streamlit
-- AWS Braket SDK when cloud quantum execution is enabled
-
----
-
-## 1. Clone the Repository
-
-```bash
-git clone https://github.com/KanakDharamthok/AMR-UTI-First-Commit-Hackathon.git
-cd AMR-UTI-First-Commit-Hackathon
-```
-
----
-
-## 2. Create a Virtual Environment
-
-### Windows
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-### macOS / Linux
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
----
-
-## 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-# ▶️ Running the Project
-
-## Launch the Streamlit Dashboard
-
-```bash
-streamlit run apps.py
-```
-
-The interface should be available at:
+The certification process records:
 
 ```text
-http://localhost:8501
+Model SHA-256
+Script SHA-256
+Parameter count
+State-dict structure
+Tensor shapes
+Tensor dtypes
+Feature count
+Target definitions
+Forward-output shape
+Deterministic inference behaviour
 ```
 
----
-
-## Run the Main Pipeline
-
-```bash
-python main.py
-```
-
----
-
-## Evaluate the Trained Models
-
-```bash
-python evaluate_metrics.py
-```
-
----
-
-# ⚛️ Quantum Execution Strategy
-
-The complete execution hierarchy is:
+The current deterministic inference self-test reports:
 
 ```text
-                         ┌──────────────────────┐
-                         │   Clinical Patient   │
-                         │        Input         │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   ETL & Imputation   │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │    MPS Reduction     │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │  Quantum State Prep  │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │  Gradient Variance   │
-                         │        Check         │
-                         └──────────┬───────────┘
-                                    │
-                 ┌──────────────────┼───────────────────┐
-                 │                  │                   │
-                 ▼                  ▼                   ▼
-          Healthy Gradient     Barren Plateau      Hardware Error
-                 │                  │                   │
-                 ▼                  ▼                   ▼
-          ┌────────────┐       ┌──────────┐       ┌──────────┐
-          │    QNN     │       │   QSVM   │       │ XGBoost  │
-          └─────┬──────┘       └────┬─────┘       └────┬─────┘
-                │                   │                  │
-                └───────────────────┼──────────────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │ Probability          │
-                         │ Calibration          │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │ Entropy & Threshold  │
-                         │ Analysis             │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │ Clinical Decision    │
-                         │ Support              │
-                         └──────────────────────┘
+Output shape: (4, 4)
+Exact repeat equality: True
+Maximum absolute difference: 0
 ```
 
----
+This means that, under the tested execution conditions, repeated inference produced identical tensor outputs.
 
-# 🔬 Research Motivation
-
-Antimicrobial resistance is a major challenge for empirical treatment of bacterial infections.
-
-For UTIs, definitive laboratory susceptibility information can become available only after laboratory processing. During this period, risk estimation from routinely available clinical data could potentially provide earlier evidence.
-
-This framework therefore investigates whether the combination of:
-
-- longitudinal EHR representations,
-- tensor-network feature compression,
-- quantum machine learning,
-- classical machine learning,
-- probability calibration,
-- uncertainty quantification,
-- and safety-oriented threshold optimization
-
-can produce useful early resistance-risk estimates while retaining an explicit fallback mechanism.
-
-The central research direction is:
-
-> **Can a fault-tolerant hybrid quantum-classical architecture provide calibrated, uncertainty-aware antimicrobial resistance predictions from longitudinal clinical data?**
+This should be understood as a **software/model reproducibility check**, not as evidence of clinical reliability.
 
 ---
 
-# 📚 Learning and Growth
+# Evaluation
 
-## 1. Bridging Quantum Computing with Clinical Reality
+The project contains separate research evaluation and production certification concepts.
 
-Building this system provided experience in translating abstract quantum-computing concepts into a practical healthcare-oriented application.
+These should not be conflated.
 
-The implementation involved concepts such as:
+## Model Evaluation
 
-- angle embedding,
-- parameterized quantum circuits,
-- parameter-shift gradients,
-- tensor networks,
-- Matrix Product States,
-- quantum kernels,
-- variational optimization,
-- barren-plateau monitoring.
+Research evaluation may include:
 
-The most important lesson was that technical novelty by itself is insufficient in high-stakes domains.
+* accuracy,
+* precision,
+* recall,
+* F1 score,
+* ROC-AUC,
+* PR-AUC,
+* confusion matrices,
+* probability calibration,
+* uncertainty analysis.
 
-Healthcare AI also requires attention to:
+## Production Certification
 
-- reliability,
-- safety,
-- interpretability,
-- calibration,
-- uncertainty,
-- reproducibility.
+Production certification focuses on:
 
----
+* correct model artifact,
+* correct feature contract,
+* correct model metadata,
+* deterministic inference,
+* expected output shape,
+* and integrity hashes.
 
-## 2. Handling Extreme Data Imbalance
+The production inference endpoint does **not** retrain the model.
 
-Medical datasets can be heavily skewed toward susceptible cases.
-
-Working on AMR prediction demonstrated why accuracy alone can produce a misleading picture.
-
-Combining:
-
-```text
-SMOTE
-   +
-Precision-Recall Analysis
-   +
-Threshold Optimization
-   +
-Probability Calibration
-```
-
-provided a stronger understanding of minority-class modelling and decision thresholds.
-
-This shifted the design objective from:
-
-> "Which model gives the highest accuracy?"
-
-to:
-
-> **"Which modelling strategy provides useful and reliable resistance-risk estimates for the target problem?"**
+The certified model is loaded for inference only.
 
 ---
 
-## 3. Uncertainty Quantification
+# What the Current System Does Not Claim
 
-A major conceptual step was moving from simple binary classification toward:
+The project does **not** claim that:
 
-```text
-Prediction
-    +
-Probability
-    +
-Uncertainty
-```
+* quantum computation has been proven superior to classical computation for this task;
+* the model is clinically validated;
+* the model is suitable for autonomous diagnosis;
+* the model can independently prescribe antibiotics;
+* the reported development metrics guarantee performance in another hospital or population;
+* a susceptibility probability is equivalent to a laboratory susceptibility test;
+* the current MVP provides a complete hospital-grade authentication system.
 
-The entropy-based uncertainty budget showed how an AI system can explicitly identify cases in which its prediction may not be sufficiently decisive.
-
-The threshold:
-
-\[
-H>0.40\text{ bits}
-\]
-
-creates an explicit uncertainty signal that can trigger further laboratory confirmation.
-
-A key learning was:
-
-> **A useful clinical AI system should know when it is uncertain.**
+These distinctions are intentional.
 
 ---
 
-## 4. Fault-Tolerant AI Architecture
+# Limitations
 
-Quantum machine learning introduces unique failure modes, including:
+## Dataset Generalization
 
-- barren plateaus,
-- unstable gradient landscapes,
-- runtime failures,
-- execution timeouts,
-- backend availability constraints.
+Model performance can vary across:
 
-Rather than allowing the quantum pipeline to become a single point of failure, the architecture introduces:
+* hospitals,
+* patient populations,
+* geographic regions,
+* clinical workflows,
+* temporal periods,
+* laboratory practices,
+* and data collection systems.
 
-```text
-QNN
- ↓
-QSVM
- ↓
-XGBoost
-```
+Independent external validation is required before any clinical interpretation.
 
-This helped build an understanding of resilient AI systems where emerging technology is surrounded by reliable fallback mechanisms.
+## Data Quality
 
----
+Machine-learning performance depends on:
 
-## 5. AWS and Cloud Quantum Computing
+* missing data,
+* feature quality,
+* label quality,
+* cohort definition,
+* temporal coverage,
+* and preprocessing assumptions.
 
-Integrating AWS Braket provided experience in separating:
+## Quantum Limitations
 
-```text
-Application Logic
-       │
-       ▼
-Quantum Abstraction
-       │
-       ▼
-Cloud Execution
-```
+Quantum models can encounter:
 
-It introduced practical exposure to cloud quantum infrastructure and demonstrated how a local experimental workflow can be connected to cloud-accessible quantum simulators and QPUs.
+* optimization instability,
+* barren plateaus,
+* simulator cost,
+* backend availability,
+* hardware noise,
+* execution latency,
+* and device-specific behaviour.
 
----
+## Probability Interpretation
 
-## 6. From Model Experimentation to an End-to-End System
-
-The project required moving beyond isolated experiments and integrating:
-
-```text
-Data
-+
-ETL
-+
-Feature Engineering
-+
-Machine Learning
-+
-Quantum Computing
-+
-Cloud Infrastructure
-+
-Frontend
-+
-Calibration
-+
-Uncertainty
-+
-Safety
-```
-
-This created a broader understanding of AI engineering as a system-building discipline rather than only a model-training exercise.
-
----
-
-# 🧠 What We Learned Technically
-
-| Area | Learning |
-|---|---|
-| Clinical ML | Evaluation must consider class imbalance and domain-specific risk |
-| Data Engineering | Leakage prevention is essential before training |
-| Temporal ML | Longitudinal history can be represented through chronological windows |
-| Tensor Networks | MPS can compress structured high-dimensional temporal representations |
-| QML | Quantum models introduce optimization and runtime constraints |
-| Fault Tolerance | Classical fallback paths can improve system resilience |
-| Calibration | Raw confidence scores are not automatically reliable probabilities |
-| Uncertainty | Entropy provides an explicit measure of prediction ambiguity |
-| Cloud | AWS Braket enables cloud-accessible quantum execution |
-| Product Engineering | A research model must be integrated into a complete usable pipeline |
-
----
-
-# ⚠️ Limitations
-
-## Dataset Limitations
-
-Performance depends on:
-
-- dataset quality,
-- cohort definition,
-- population characteristics,
-- missingness,
-- and availability of longitudinal information.
-
-## Generalization
-
-A model trained on a particular cohort should not automatically be considered generalizable to other hospitals, geographies, demographics, or healthcare systems.
-
-## Quantum Hardware Constraints
-
-Real quantum hardware may introduce:
-
-- noise,
-- latency,
-- device availability limitations,
-- optimization instability,
-- hardware-specific execution behaviour.
+A model output labelled as a probability should not automatically be interpreted as a calibrated clinical probability unless calibration has been independently established for the relevant population.
 
 ## Clinical Validation
 
-The reported test metrics represent model-development evaluation and should not be interpreted as clinical validation.
+The project is not clinically validated.
 
-## Calibration
+Any future clinical application would require appropriate:
 
-Probability calibration should be assessed independently across different cohorts before any clinical use.
-
----
-
-# 🚀 Future Work
-
-## 1. External Validation
-
-Evaluate the model on independent datasets from other healthcare systems.
-
-## 2. Prospective Temporal Evaluation
-
-Study how performance changes on future patient cohorts.
-
-## 3. Antibiotic-Specific Predictions
-
-Extend the framework from a general resistance outcome to antibiotic-specific susceptibility predictions.
-
-## 4. Explainable AI
-
-Add feature-level and patient-level explanation mechanisms.
-
-## 5. Advanced Calibration
-
-Evaluate calibration stability across populations, sites, and temporal periods.
-
-## 6. Larger Quantum Experiments
-
-Expand quantum execution to additional AWS Braket simulators and hardware platforms.
-
-## 7. Model Drift Monitoring
-
-Introduce cloud-based monitoring for data drift and model performance drift.
-
-## 8. Clinical Workflow Integration
-
-Investigate how the prediction layer could integrate into research or clinical decision-support workflows under appropriate validation and governance.
+* external validation,
+* prospective evaluation,
+* clinical governance,
+* privacy controls,
+* security controls,
+* regulatory assessment,
+* monitoring,
+* and human oversight.
 
 ---
 
-# 🏆 Hackathon Alignment
+# Safety and Intended Use
 
-This project is structured to directly demonstrate the four core dimensions of the challenge.
+> **IMPORTANT: AMR-UTI is a research and decision-support prototype. It is not medical advice.**
 
-## 1. About the Project
+The system is not intended to:
 
-The project addresses a real-world healthcare problem:
+* diagnose patients autonomously;
+* prescribe medication;
+* determine antibiotic dosage;
+* replace microbiological culture;
+* replace antimicrobial susceptibility testing;
+* replace physicians;
+* replace infectious-disease specialists;
+* or make independent clinical decisions.
 
-**early antimicrobial resistance risk estimation for urinary tract infections.**
+The susceptibility outputs are computational estimates intended for research and demonstration.
 
-It combines longitudinal clinical data with AI and uncertainty-aware decision support.
-
----
-
-## 2. Tech Stack and Architecture
-
-The system demonstrates a complete architecture spanning:
-
-- Python,
-- PyTorch,
-- PennyLane,
-- XGBoost,
-- Scikit-Learn,
-- Streamlit,
-- Matrix Product States,
-- QSVM,
-- probability calibration,
-- uncertainty quantification.
-
-The architecture is modular and fault-tolerant, allowing inference to transition between quantum and classical execution paths.
+A qualified clinician and the appropriate laboratory evidence remain responsible for real-world clinical decisions.
 
 ---
 
-## 3. How We Used AWS
+# Current MVP Scope
 
-AWS Braket serves as the cloud quantum infrastructure.
-
-It enables access to:
-
-- quantum simulators,
-- cloud-accessible QPUs,
-- and an abstraction layer between local application execution and quantum backends.
-
-This provides a pathway toward scalable quantum experimentation.
-
----
-
-## 4. Learning and Growth
-
-The project demonstrates growth across:
-
-- machine learning,
-- clinical data processing,
-- quantum machine learning,
-- tensor networks,
-- probability calibration,
-- uncertainty quantification,
-- fault-tolerant architecture,
-- cloud quantum infrastructure,
-- and responsible AI.
-
----
-
-# 🛡️ Safety and Intended Use
-
-> **IMPORTANT:** This project is a research and decision-support prototype.
-
-It is **not** intended to:
-
-- diagnose patients autonomously,
-- prescribe antibiotics,
-- replace microbiological culture,
-- replace antimicrobial susceptibility testing,
-- replace physicians or infectious-disease specialists,
-- or function as an independent clinical decision-maker.
-
-Predictions generated by the system should be treated as **computational estimates** and not as medical advice.
-
-Definitive clinical decisions must remain grounded in:
-
-- clinical evaluation,
-- microbiological culture,
-- antimicrobial susceptibility testing,
-- qualified medical judgment,
-- and institutional antimicrobial stewardship protocols.
-
-Any real-world deployment would require extensive:
-
-- external validation,
-- prospective clinical evaluation,
-- regulatory review,
-- privacy and security controls,
-- clinical governance,
-- and monitoring.
-
----
-
-# 👥 Contributors
-
-### Core Team
-
-- **Kanak Dharamthok**
-- **Khushbu Gupta**
-- **Nandini Jaiswal**
-- **Sanvi Goja**
-
----
-
-# 🙏 Acknowledgements
-
-This project integrates concepts and technologies from:
-
-- PyTorch
-- PennyLane
-- XGBoost
-- Scikit-Learn
-- AWS Braket
-- Streamlit
-- Tensor Networks
-- Matrix Product State methods
-- Antimicrobial Resistance research
-- Clinical Machine Learning
-- Probability Calibration
-- Uncertainty Quantification
-
----
-
-# 📜 License
-
-Add the applicable project license here.
-
-Example:
+The current MVP focuses on demonstrating an end-to-end technical workflow:
 
 ```text
-MIT License
+Certified Model
+      │
+      ▼
+FastAPI Inference API
+      │
+      ▼
+Authentication
+      │
+      ▼
+JSON Prediction
+      │
+      ▼
+React Frontend
+      │
+      ▼
+Human-Readable Results
 ```
+
+The MVP intentionally does not require a full clinical database.
+
+Authentication is currently handled at the API layer for controlled demonstration.
+
+A future version can add:
+
+```text
+Identity Provider
+       │
+       ▼
+User Accounts
+       │
+       ▼
+Role-Based Access
+       │
+       ▼
+Database
+       │
+       ▼
+Audit Logging
+```
+
+without changing the underlying certified model contract.
 
 ---
 
-# 🌟 Project Vision
+# Future Work
 
-The long-term vision of **AMR-UTI** is to investigate how **AI, quantum computing, cloud infrastructure, and uncertainty-aware modelling** can contribute to earlier antimicrobial resistance risk assessment.
+Planned research and engineering directions include:
+
+1. Independent external validation.
+2. Prospective temporal evaluation.
+3. More rigorous probability calibration.
+4. Expanded uncertainty analysis.
+5. Model-drift monitoring.
+6. Improved feature-level explainability.
+7. Additional quantum backends.
+8. Real quantum-hardware experiments.
+9. Structured identity and access management.
+10. Persistent experiment and audit storage.
+11. Clinical workflow integration under appropriate governance.
+12. More extensive automated deployment and regression testing.
+
+---
+
+# Research Position
+
+The project is intentionally framed as an investigation into **hybrid AI systems**, rather than as a claim that quantum machine learning is inherently superior to classical machine learning.
+
+The engineering question is broader:
 
 ```text
-                    ┌────────────────────┐
-                    │   Clinical Data     │
-                    └──────────┬─────────┘
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │     AI / ML        │
-                    └──────────┬─────────┘
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │ Quantum + Classical│
-                    │      Inference     │
-                    └──────────┬─────────┘
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │ Calibration +      │
-                    │ Uncertainty        │
-                    └──────────┬─────────┘
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │ Decision Support   │
-                    └──────────┬─────────┘
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │ Antimicrobial      │
-                    │ Stewardship         │
-                    └────────────────────┘
+Can emerging quantum models
+        +
+reliable classical fallbacks
+        +
+model certification
+        +
+uncertainty analysis
+        +
+human oversight
+        ↓
+produce a reproducible research system
+for antimicrobial-resistance modelling?
 ```
 
-<p align="center">
-  <b>🧬 AMR-UTI Prediction Engine</b>
-  <br>
-  <sub>Researching the intersection of Antimicrobial Resistance, Quantum ML, Clinical AI, and AWS.</sub>
-</p>
+This framing keeps the research contribution focused on system design, experimentation, reliability, and reproducibility.
+
+---
+
+# Contributors
+
+Core project contributors:
+
+* **Kanak Dharamthok**
+* **Khushbu Gupta**
+* **Nandini Jaiswal**
+* **Sanvi Goja**
+
+---
+
+# Technology
+
+The project uses or experiments with:
+
+* Python
+* PyTorch
+* PennyLane
+* XGBoost
+* Scikit-Learn
+* NumPy
+* Pandas
+* AWS Braket
+* Google Cloud
+* Docker
+* Google Artifact Registry
+* Google Cloud Build
+* Google Cloud Run
+* FastAPI
+* React
+* TypeScript
+* Vite
+
+---
+
+# License
+
+The repository should include the applicable project license in a separate `LICENSE` file.
+
+If no license has yet been selected, do not describe the project as open source until the licensing terms have been explicitly defined.
+
+---
+
+# Project Status
+
+**Current status: Research / MVP demonstration**
+
+The project currently includes:
+
+* a certified model artifact;
+* a locked 788-feature modelling contract;
+* deterministic production inference;
+* FastAPI inference endpoints;
+* API-key protection for protected endpoints;
+* a React/TypeScript frontend;
+* Docker packaging;
+* Google Cloud deployment artifacts;
+* model and deployment integrity checks.
+
+The system remains a **research prototype and should not be used for clinical decision-making**.
+
+---
+
+## Verification Summary
+
+The current certification pipeline records:
+
+```text
+Model class:              FullHybridModel
+Parameter count:          52,978
+State-dict entries:       11
+Input features:           788
+Output targets:           4
+
+Forward contract:         PASS
+State-dict checks:        PASS
+Model loading:            PASS
+Model evaluation mode:   PASS
+Deterministic inference: PASS
+
+Model SHA-256:
+db708f2c18a9390d72af1c520dab460374a737ced00e8c7ec76e3ac315bcc318
+
+Script 30 SHA-256:
+12d2d201c9153253632383c598b8e360bcc5dc61b0492bf4233b406d7b6cdb3a
+```
+
+These checks establish the current software/model integrity state documented by the project's certification workflow. They do not establish clinical efficacy or clinical validity.
+
+The key change I made is **not just wording**: I removed or softened claims that your current certified deployment does not directly substantiate. For example, the README now distinguishes the **research quantum pipeline** from the **currently certified `FullHybridModel` inference service**, and it does not present the older Streamlit architecture as though it were your current React/FastAPI MVP.
+
+Your certification record supports the model-integrity figures above, including the 52,978 parameters, 11 state-dict entries, deterministic inference result, and model SHA-256.  
+
+For GitHub, I would keep this as the **root README** and put lengthy deployment/debugging material into `docs/` later; GitHub specifically recommends keeping the README focused on what the project does and how to get started, with longer documentation separated out. ([GitHub Docs][1])
+
+[1]: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes?utm_source=chatgpt.com "About the repository README file - GitHub Docs"
